@@ -17,12 +17,27 @@ struct flagModifier : ViewModifier {
 }
 
 extension View {
-    
     func flagStyle() -> some View {
         self.modifier(flagModifier())
     }
+}
+
+struct CornerRotationModifier : ViewModifier {
+    let amount: Double
+    let anchor: UnitPoint
     
-    
+    func body(content: Content) -> some View {
+        content.rotationEffect(.degrees(amount), anchor: anchor).clipped()
+    }
+}
+
+extension AnyTransition {
+    static var pivot : AnyTransition {
+        .modifier(
+            active: CornerRotationModifier(amount: -360, anchor: .topLeading),
+            identity: CornerRotationModifier(amount: 0, anchor: .topLeading)
+        )
+    }
 }
 
 struct ContentView: View {
@@ -33,6 +48,7 @@ struct ContentView: View {
     @State private var ScoreMessage = ""
     @State private var ShowingScore = false
     @State private var currentScore = 0
+    @State private var correct = false
     
     var body: some View {
         
@@ -53,10 +69,20 @@ struct ContentView: View {
                     Button(action:{
                         flagTapped(number)
                     }) {
-                        Image(self.countries[number])
-                            .renderingMode(.original)
-                            .shadow(color: .black, radius: 2)
-                            .flagStyle()
+                        if number == correctAnswer {
+                            Image(self.countries[number])
+                                .renderingMode(.original)
+                                .shadow(color: .black, radius: 2)
+                                .flagStyle()
+                                .rotationEffect(.degrees(correct ? 360 : 0))
+                                .animation(.default)
+                        } else {
+                            Image(self.countries[number])
+                                .renderingMode(.original)
+                                .shadow(color: .black, radius: 2)
+                                .flagStyle()
+                                .opacity(correct ? 0.25 : 1)
+                        }
                     }
                 }
                 
@@ -80,14 +106,17 @@ struct ContentView: View {
             ScoreTitle = "Correct"
             currentScore += 1
             ScoreMessage = "Your score is \(currentScore)"
+            correct = true
         } else {
             ScoreTitle = "Incorrect"
             ScoreMessage = "Thats the flag for \(self.countries[number])"
+            correct = false
         }
         ShowingScore = true
     }
     
     func askQuestion(){
+        correct = false
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
     }
